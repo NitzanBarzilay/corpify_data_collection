@@ -52,30 +52,37 @@ def rephrasing_task_collect_data():
     st.write("You will be provided with a normal English sentence. "
              "Your task is to **re-write the sentence to match a corporate & professional setting.** "
              "You don't need to rephrase it word-by-word - you have creative freedom as for how to "
-             "catch the essense of the original sentence while making it corpy.\n"
-             "Don't be afraid to be passive-aggressive if necessary, as this aggression is the fuel of corpy culture...")
+             "catch the essence of the original sentence while making it corpy.\n"
+             "Don't be afraid to be passive-aggressive or fake-nice if necessary, as these micro-aggressions is the fuel of corpy culture... 🙄")
 
-    source_sentences = state.sheet.col_values(1)
-    target_sentences = state.sheet.col_values(2)
+    source_sentences = state.sheet.col_values(1) # read the A column from Google Sheets
+    target_sentences = state.sheet.col_values(2) # read the B column from Google Sheets
     source_last_row_ind = len(source_sentences)
     target_last_row_ind = len(target_sentences)
-    sents_to_translate = []
 
+    sents_to_translate = []
     for row in range(1, source_last_row_ind):
         if (row < target_last_row_ind and target_sentences[row] == "") or (row >= target_last_row_ind):
             source_sent = source_sentences[row]
             sents_to_translate.append((source_sent, row))
-    state.chosen_sent, state.chosen_row = rnd.choice(sents_to_translate)
 
-    st.write("##### What to re-write\nPlease re-write the following sentence:")
-    st.write(f"##### ***{state.chosen_sent}***")
-    st.write("Check out the examples in ❔ down here on the right!")
-    st.text_input("Re-write the bolded sentence in a corporate manner:",
-                  key="donated_target",help="Examples: 'Don't interrupt me' could be rephrased as "
-                                            "'Thank you for you input, but please wait until I am "
-                                            "finished sharing my thoughts before proceeding', and "
-                                            "'I hate your idea' could be rephrased as 'Let’s circle back on this'.")
-    st.button("Contribute rephrase", key='rephrase_donated', on_click=rephrasing_task_save_to_sheets)
+    if len(sents_to_translate) > 0: # there are available sentences to rephrase
+        state.chosen_sent, state.chosen_row = rnd.choice(sents_to_translate) # choose random non translated sentence
+        st.write("##### What to re-write\nPlease re-write the following sentence:")
+        st.write(f"##### ***{state.chosen_sent}***")
+        st.write("Check out the examples in ❔ down here on the right!")
+        st.text_input("Re-write the bolded sentence in a corporate manner:",
+                      key="donated_target",help="Examples: 'Don't interrupt me' could be rephrased as "
+                                                "'Thank you for you input, but please wait until I am "
+                                                "finished sharing my thoughts before proceeding', and "
+                                                "'I hate your idea' could be rephrased as 'Let’s circle back on this'.")
+        st.button("Contribute rephrase", key='rephrase_donated', on_click=rephrasing_task_save_to_sheets)
+    else: # there are no available sentences to rephrase
+        st.write("##### Oh no! We currently don't have any sentences for you to corpify 😔\n"
+                 "If you want to help us with that, you can propose sentences of your own! "
+                 "Just refresh this page and click 'Add a sentence'.")
+        st.write("**You can always come back later and hopefully we will collect more sentences by then!**")
+
 
 def writing_task_save_to_sheets():
     """
