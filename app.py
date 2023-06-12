@@ -26,7 +26,10 @@ def writing_task_collect_data():
     :return: None
     """
     st.write("### Contribute a sentence that needs to be corpified")
-    st.write("This should be something you would think to yourself or want to say to a colleague, manager or employee, "
+    st.write("##### What is your task")
+    st.write("Your task is to come up with a sentence (in English) that you would like to "
+             "'corpify' (meaning - rephrased in a corporate-friendly manner).\n"
+             "This should be something you would think to yourself or want to say to a colleague, manager or employee, "
         "***but you can't say it like that because it would be unproffesional.***")
     st.write("Check out the examples in ❔ down here on the right!")
 
@@ -45,18 +48,33 @@ def rephrasing_task_collect_data():
     :return: None
     """
     st.write("### Contribute by rephrasing a sentence to a corpy style")
-    source_last_row_ind = len(state.sheet.col_values(1))
-    target_last_row_ind = len(state.sheet.col_values(2))
+    st.write("##### What is your task")
+    st.write("You will be provided with a normal English sentence. "
+             "Your task is to **re-write the sentence to match a corporate & professional setting.** "
+             "You don't need to rephrase it word-by-word - you have creative freedom as for how to "
+             "catch the essense of the original sentence while making it corpy.\n"
+             "Don't be afraid to be passive-aggressive if necessary, as this aggression is the fuel of corpy culture...")
 
+    source_sentences = state.sheet.col_values(1)
+    target_sentences = state.sheet.col_values(2)
+    source_last_row_ind = len(source_sentences)
+    target_last_row_ind = len(target_sentences)
     sents_to_translate = []
+
     for row in range(1, source_last_row_ind):
-        if (row < target_last_row_ind and state.sheet.col_values(2)[row] == "") or (row >= target_last_row_ind):
-            source_sent = state.sheet.col_values(1)[row]
+        if (row < target_last_row_ind and target_sentences[row] == "") or (row >= target_last_row_ind):
+            source_sent = source_sentences[row]
             sents_to_translate.append((source_sent, row))
     state.chosen_sent, state.chosen_row = rnd.choice(sents_to_translate)
 
-    st.write("The sentence that you should rephrase is:")
-    st.write(f"**{state.chosen_sent}**")
+    st.write("##### What to re-write\nPlease re-write the following sentence:")
+    st.write(f"##### ***{state.chosen_sent}***")
+    st.write("Check out the examples in ❔ down here on the right!")
+    st.text_input("Re-write the bolded sentence in a corporate manner:",
+                  key="donated_target",help="Examples: 'Don't interrupt me' could be rephrased as "
+                                            "'Thank you for you input, but please wait until I am "
+                                            "finished sharing my thoughts before proceeding', and "
+                                            "'I hate your idea' could be rephrased as 'Let’s circle back on this'.")
     st.button("Contribute rephrase", key='rephrase_donated', on_click=rephrasing_task_save_to_sheets)
 
 def writing_task_save_to_sheets():
@@ -98,12 +116,17 @@ if "sheet" not in state:
     sh = gc.open("Corpify_data_collection")
     state.sheet = sh.worksheet("Sheet1")
 
-    st.write("""# Corpify Project Data Collection""")
-    st.write(
-        """Corpify is a non-profit academic NLP project that aims to develop a rephrasing model that helps frustrated corporate employees to communicate their thoughts and feelings in the familiar corporate manner we all know and love so much.""")
-    st.write(
-        "Your contribution will be donated to a dataset that will be used to train our open-source Corpify rephrasing model.")
-    st.write("**Choose a way to contribute**")
+    st.write("## Contribute Data to the Corpify Project 🧑‍💼")
+    st.write("##### What is the Corpify project?")
+    st.write("Corpify is an open-source academic NLP project that aims to develop a model that rephrases text in everyday English into the beloved dialect of corporate-English. "
+             "The goal is to help frustrated corporate employees to communicate their thoughts and feelings in the "
+             "familiar corporate manner we all know and love *so much* (or just amuse them on their coffee break).")
+    st.write("##### How can I help?")
+    st.write("You can propose a sentence of your own that needs to be corpified, or help us by re-writing sentences that others suggested into a corpy language. Both are super fun! 🔥")
+    st.write("Your contribution will be donated (anonymously) to a dataset that will be used to train our "
+             "open-source Corpify rephrasing model.\n"
+             "Both the dataset and the trained model will be made publicly available via HuggingFace.")
+    st.write("**Choose your way to contribute**")
     st.button('Add a sentence you want us to corpify', on_click=writing_task_collect_data)
     st.button('Rephrase a sentence to a corpy style', on_click=rephrasing_task_collect_data)
 
