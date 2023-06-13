@@ -4,7 +4,6 @@ from oauth2client.service_account import ServiceAccountCredentials
 import random as rnd
 from streamlit_extras.let_it_rain import rain
 
-
 credentials = {
     "type": "service_account",
     "project_id": "corpify",
@@ -19,6 +18,7 @@ credentials = {
     "universe_domain": "googleapis.com"
 }
 
+
 def writing_task_collect_data():
     """
     Explains the writing task (of providing a new source sentence),
@@ -30,15 +30,15 @@ def writing_task_collect_data():
     st.write("Your task is to come up with a sentence (in English) that you would like to "
              "'corpify' (meaning - rephrased in a corporate-friendly manner).\n"
              "This should be something you would think to yourself or want to say to a colleague, manager or employee, "
-        "***but you can't say it like that because it would be unproffesional.***")
+             "***but you can't say it like that because it would be unproffesional.***")
     st.write("Check out the examples in ❔ down here on the right!")
 
     # Get sentence from user
-    st.text_input("Please enter a sentence in spoken English that you would like us to corpify:",
-                  key="donated_sentence",
+    st.text_input("Please enter a sentence in spoken English that you would like us to corpify:", key="task1_output",
                   help="Examples: 'I know you saw my message, stop ignoring me!' or 'Well that's a dumb idea'.\n"
                        " You don't need the quoation marks, just write you sentence as it is.")
-    st.button("Contribute", key='sent_donated', on_click=writing_task_save_to_sheets)
+    st.button("Contribute", on_click=move_page_to_after_task1)
+
 
 def rephrasing_task_collect_data():
     """
@@ -55,8 +55,9 @@ def rephrasing_task_collect_data():
              "catch the essence of the original sentence while making it corpy.\n"
              "Don't be afraid to be passive-aggressive or fake-nice if necessary, as these micro-aggressions is the fuel of corpy culture... 🙄")
 
-    source_sentences = state.sheet.col_values(1) # read the A column from Google Sheets
-    target_sentences = state.sheet.col_values(2) # read the B column from Google Sheets
+    source_sentences = state.sheet.col_values(1)  # read the A column from Google Sheets
+    target_sentences = state.sheet.col_values(2)  # read the B column from Google Sheets
+
     source_last_row_ind = len(source_sentences)
     target_last_row_ind = len(target_sentences)
 
@@ -66,18 +67,18 @@ def rephrasing_task_collect_data():
             source_sent = source_sentences[row]
             sents_to_translate.append((source_sent, row))
 
-    if len(sents_to_translate) > 0: # there are available sentences to rephrase
-        state.chosen_sent, state.chosen_row = rnd.choice(sents_to_translate) # choose random non translated sentence
+    if len(sents_to_translate) > 0:  # there are available sentences to rephrase
+        state.chosen_sent, state.chosen_row = rnd.choice(sents_to_translate)  # choose random non translated sentence
         st.write("##### What to re-write\nPlease re-write the following sentence:")
         st.write(f"##### ***{state.chosen_sent}***")
         st.write("Check out the examples in ❔ down here on the right!")
         st.text_input("Re-write the bolded sentence in a corporate manner:",
-                      key="donated_target",help="Examples: 'Don't interrupt me' could be rephrased as "
-                                                "'Thank you for you input, but please wait until I am "
-                                                "finished sharing my thoughts before proceeding', and "
-                                                "'I hate your idea' could be rephrased as 'Let’s circle back on this'.")
-        st.button("Contribute rephrase", key='rephrase_donated', on_click=rephrasing_task_save_to_sheets)
-    else: # there are no available sentences to rephrase
+                      key="task2_output", help="Examples: 'Don't interrupt me' could be rephrased as "
+                                               "'Thank you for you input, but please wait until I am "
+                                               "finished sharing my thoughts before proceeding', and "
+                                               "'I hate your idea' could be rephrased as 'Let’s circle back on this'.")
+        st.button("Contribute", on_click=move_page_to_after_task2)
+    else:  # there are no available sentences to rephrase
         st.write("##### Oh no! We currently don't have any sentences for you to corpify 😔\n"
                  "If you want to help us with that, you can propose sentences of your own! "
                  "Just refresh this page and click 'Add a sentence'.")
@@ -90,8 +91,10 @@ def writing_task_save_to_sheets():
     Writes the collected sentence into the Google Sheets database.
     :return: None
     """
-    next_row_ind = len(state.sheet.col_values(1)) + 1 # choose index to write to
-    state.sheet.update('A' + str(next_row_ind), state.donated_sentence) # Write sentence to Sheets
+    next_row_ind = len(state.sheet.col_values(1)) + 1  # choose index to write to
+    state.sheet.update('A' + str(next_row_ind), state.task1_output)  # Write sentence to Sheets
+    state.cur_page = "thanks"
+
 
 def rephrasing_task_save_to_sheets():
     """
@@ -99,7 +102,43 @@ def rephrasing_task_save_to_sheets():
     Writes the collected sentence into the Google Sheets database.
     :return: None
     """
-    state.sheet.update('B' + str(state.chosen_row), state.donated_rephrase) # Write sentence to Sheets
+    try: # ignore wierd unexplained exception that doesn't impact functionality
+        state.sheet.update('B' + str(state.chosen_row + 1), state.task2_output)  # Write sentence to Sheets
+    except KeyError or AttributeError:
+        pass
+    state.cur_page = "thanks"
+
+
+def move_page_to_task1():
+    """
+    Changes the page to show instructions for the writing task.
+    :return: None
+    """
+    state.cur_page = "task1"
+
+
+def move_page_to_task2():
+    """
+    Changes the page to show instructions for the rephrasing task.
+    :return: None
+    """
+    state.cur_page = "task2"
+
+
+def move_page_to_after_task1():
+    """
+    Changes the page to save the collected data of the writing task.
+    :return: None
+    """
+    state.cur_page = "after_task1"
+
+
+def move_page_to_after_task2():
+    """
+    Changes the page to save the collected data of the rephrasing task.
+    :return: None
+    """
+    state.cur_page = "after_task2"
 
 
 def thanks_for_contributing():
@@ -108,32 +147,61 @@ def thanks_for_contributing():
     :return: None
     """
     rain(
-    emoji="🙏",
-    font_size=54,
-    falling_speed=5,
-    animation_length="infinite",
+        emoji="🙏👩‍💼",
+        font_size=40,
+        falling_speed=5,
+        animation_length="infinite",
     )
-    st.write("#Thanks for contributing to the Corpify project!")
-    st.write("If you want to contribute some more - just refresh the page!")
+    st.write("# Thanks for contributing to the Corpify project!")
+    st.write("#### Every contribution is meaningful!\n**If you want to contribute some more - choose a task:**")
+    st.button('Add a sentence you want us to corpify', on_click=move_page_to_task1)
+    st.button('Rephrase a sentence to a corpy style', on_click=move_page_to_task2)
+    st.write("If youv'e had enaugh you can just close this tab")
 
-state = st.session_state  # streamlit state to save info to
 
+state = st.session_state  # initialize state to save info to
+
+# when app first opens:
 if "sheet" not in state:
+    state.cur_page = "main"
+
+    # connect to google sheets
     gc = gspread.service_account_from_dict(credentials)
     sh = gc.open("Corpify_data_collection")
     state.sheet = sh.worksheet("Sheet1")
 
+    # show general instructions
     st.write("## Contribute Data to the Corpify Project 🧑‍💼")
     st.write("##### What is the Corpify project?")
-    st.write("Corpify is an open-source academic NLP project that aims to develop a model that rephrases text in everyday English into the beloved dialect of corporate-English. "
-             "The goal is to help frustrated corporate employees to communicate their thoughts and feelings in the "
-             "familiar corporate manner we all know and love *so much* (or just amuse them on their coffee break).")
+    st.write(
+        "Corpify is an open-source academic NLP project that aims to develop a model that rephrases text in everyday English into the beloved dialect of corporate-English. "
+        "The goal is to help frustrated corporate employees to communicate their thoughts and feelings in the "
+        "familiar corporate manner we all know and love *so much* (or just amuse them on their coffee break).")
+    st.write("##### Who can contribute")
+    st.write("If you speak English and are familiar with the vibes of workplace communication in the American corporate world, we want your input!")
     st.write("##### How can I help?")
-    st.write("You can propose a sentence of your own that needs to be corpified, or help us by re-writing sentences that others suggested into a corpy language. Both are super fun! 🔥")
-    st.write("Your contribution will be donated (anonymously) to a dataset that will be used to train our "
+    st.write(
+        "You can propose a sentence of your own that needs to be corpified, or help us by re-writing sentences that others suggested into a corpy language. Both are super fun! 🔥")
+    st.write("Your contribution will be donated (anonymously and without pay) to a dataset that will be used to train our "
              "open-source Corpify rephrasing model.\n"
              "Both the dataset and the trained model will be made publicly available via HuggingFace.")
     st.write("**Choose your way to contribute**")
-    st.button('Add a sentence you want us to corpify', on_click=writing_task_collect_data)
-    st.button('Rephrase a sentence to a corpy style', on_click=rephrasing_task_collect_data)
+    st.button('Add a sentence you want us to corpify', on_click=move_page_to_task1)
+    st.button('Rephrase a sentence to a corpy style', on_click=move_page_to_task2)
 
+# Flow control for every stage after the main page:
+
+if state.cur_page == "task1":
+    writing_task_collect_data()
+
+if state.cur_page == "task2":
+    rephrasing_task_collect_data()
+
+if state.cur_page == "after_task1":
+    writing_task_save_to_sheets()
+
+if state.cur_page == "after_task2":
+    rephrasing_task_save_to_sheets()
+
+if state.cur_page == "thanks":
+    thanks_for_contributing()
